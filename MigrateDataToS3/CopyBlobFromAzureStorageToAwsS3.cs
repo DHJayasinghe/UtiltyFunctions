@@ -27,7 +27,7 @@ public class CopyBlobFromAzureStorageToAwsS3
             RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(req.AwsRegion)
         };
         var client = new AmazonS3Client(credentials, config);
-        await UploadFileAsync(client, req.BucketName, req.ObjectName, req.AzSasFileUrl);
+        await UploadFileAsync(client, req.BucketName, req.ObjectName, req.AzSasUrl);
 
         return new OkResult();
     }
@@ -88,7 +88,7 @@ public record CopyBlobRequest
     public string AwsSecretKey { get; init; }
     public string BucketName { get; init; }
     public string ObjectName { get; set; }
-    public string AzSasFileUrl { get; set; }
+    public string AzSasUrl { get; set; }
 }
 
 
