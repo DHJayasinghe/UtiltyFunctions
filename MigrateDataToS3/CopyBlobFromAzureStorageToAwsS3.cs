@@ -70,8 +70,9 @@ public class CopyBlobFromAzureStorageToAwsS3
     {
         using var client = new HttpClient();
         using var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
         using var stream = await response.Content.ReadAsStreamAsync();
-        string fileName = string.Join("{0}{1}", Guid.NewGuid(), Path.GetExtension(RemoveQueryParams(url)));
+        string fileName = string.Format("{0}{1}", Guid.NewGuid(), Path.GetExtension(RemoveQueryParams(url)));
         string tempFilePath = Path.Combine(Path.GetTempPath(), fileName);
         using var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write);
         await stream.CopyToAsync(fileStream);
