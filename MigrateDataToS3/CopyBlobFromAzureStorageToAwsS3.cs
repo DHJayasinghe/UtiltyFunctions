@@ -9,6 +9,7 @@ using Amazon.S3.Model;
 using Amazon.Runtime;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 
 namespace MigrateDataToS3;
 
@@ -20,6 +21,7 @@ public class CopyBlobFromAzureStorageToAwsS3
         ILogger log)
     {
         log.LogInformation("C# HTTP trigger function processed a request.");
+        log.LogInformation("C# HTTP trigger function processed a {0}", req);
 
         var credentials = new BasicAWSCredentials(req.AwsAccessKey, req.AwsSecretKey);
         var config = new AmazonS3Config
@@ -27,7 +29,8 @@ public class CopyBlobFromAzureStorageToAwsS3
             RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(req.AwsRegion)
         };
         var client = new AmazonS3Client(credentials, config);
-        await UploadFileAsync(client, req.BucketName, req.ObjectName, req.AzSasUrl);
+        string sasUrl = string.Concat(req.AzBlobUrl, "?", Encoding.UTF8.GetString(Convert.FromBase64String(req.AzBase64SasToken)));
+        await UploadFileAsync(client, req.BucketName, req.ObjectName, sasUrl);
 
         return new OkResult();
     }
@@ -89,7 +92,8 @@ public record CopyBlobRequest
     public string AwsSecretKey { get; init; }
     public string BucketName { get; init; }
     public string ObjectName { get; set; }
-    public string AzSasUrl { get; set; }
+    public string AzBlobUrl { get; set; }
+    public string AzBase64SasToken { get; set; }
 }
 
 
