@@ -20,7 +20,6 @@ public class CopyBlobFromAzureStorageToAwsS3
         [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] CopyBlobRequest req,
         ILogger log)
     {
-        log.LogInformation("C# HTTP trigger function processed a request.");
         log.LogInformation("C# HTTP trigger function processed a {0}", req);
 
         var credentials = new BasicAWSCredentials(req.AwsAccessKey, req.AwsSecretKey);
@@ -29,7 +28,7 @@ public class CopyBlobFromAzureStorageToAwsS3
             RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(req.AwsRegion)
         };
         var client = new AmazonS3Client(credentials, config);
-        string sasUrl = string.Concat(req.AzBlobUrl, "?", Encoding.UTF8.GetString(Convert.FromBase64String(req.AzBase64SasToken)));
+        string sasUrl = string.IsNullOrEmpty(req.AzBlobUrl) ? req.AssetUrl : string.Concat(req.AzBlobUrl, "?", Encoding.UTF8.GetString(Convert.FromBase64String(req.AzBase64SasToken)));
         await UploadFileAsync(client, req.BucketName, req.ObjectName, sasUrl);
 
         return new OkResult();
@@ -45,6 +44,12 @@ public class CopyBlobFromAzureStorageToAwsS3
         try
         {
             temporaryFileUrl = await DownloadFile(filePath);
+            if (string.IsNullOrEmpty(temporaryFileUrl))
+            {
+                Console.WriteLine("skipping file");
+                return;
+            };
+
             var request = new PutObjectRequest
             {
                 BucketName = bucketName,
@@ -73,6 +78,8 @@ public class CopyBlobFromAzureStorageToAwsS3
     {
         using var client = new HttpClient();
         using var response = await client.GetAsync(url);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return string.Empty;
+
         response.EnsureSuccessStatusCode();
         using var stream = await response.Content.ReadAsStreamAsync();
         string fileName = string.Format("{0}{1}", Guid.NewGuid(), Path.GetExtension(RemoveQueryParams(url)));
@@ -94,6 +101,7 @@ public record CopyBlobRequest
     public string ObjectName { get; set; }
     public string AzBlobUrl { get; set; }
     public string AzBase64SasToken { get; set; }
+    public string AssetUrl { get; set; }
 }
 
 
